@@ -13,11 +13,11 @@ const handleMessage = async (chatName, text) => {
       text: `I waited ${waitPeriod} seconds before replying.`
     };
   }
-  return null;
-  // return {
-  //   chatName,
-  //   text: `Sorry, I don't understand that request.`
-  // };
+  // return null;
+  return {
+    chatName,
+    text: `Sorry, I don't understand that request.`
+  };
 };
 
 const processMessages = async messages => {

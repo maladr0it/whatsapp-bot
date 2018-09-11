@@ -61,7 +61,7 @@ module.exports = (page, processMessages) => {
 
   // compare last X messages in snapshot vs now,
   // in order to detect new messages
-  const getNewMessages = async () => {
+  const getNewMessages = async wasSelected => {
     // if previous messages have never been recorded aka undefined
     // only look for items under the 'unread' banner
     let newMessages = [];
@@ -72,10 +72,15 @@ module.exports = (page, processMessages) => {
       return Promise.resolve(messages);
     }, selectors.message_in);
 
-    if (typeof state.messages[state.selectedChat] === "undefined") {
+    if (
+      typeof state.messages[state.selectedChat] === "undefined" ||
+      wasSelected
+    ) {
       newMessages = await getUnread();
       state.messages[state.selectedChat] = messages;
     } else {
+      // in this case, the chat was already selected so it should
+      // compare the length of messages
       const prevMessages = state.messages[state.selectedChat];
       const newMessageCount = messages.length - prevMessages.length;
       if (newMessageCount > 0) {
@@ -87,7 +92,7 @@ module.exports = (page, processMessages) => {
       newMessages.map(text => ({ chatName: state.selectedChat, text }))
     );
   };
-
+  // TODO: add error handling in case of invalid chat name
   const selectChat = async chatName => {
     await page.click(selectors.chat_item_with_title(chatName));
     state.selectedChat = chatName;
@@ -114,7 +119,7 @@ module.exports = (page, processMessages) => {
     await unreadChats
       .map(chatName => async () => {
         await selectChat(chatName);
-        await getNewMessages();
+        await getNewMessages(true);
       })
       .reduce((promise, func) => promise.then(func), Promise.resolve());
   };
@@ -124,7 +129,7 @@ module.exports = (page, processMessages) => {
       .map(({ chatName, text }) => async () => {
         await sendMessage(chatName, text);
         // harvest any new messages before leaving the page
-        await getNewMessages();
+        await getNewMessages(true);
       })
       .reduce((promise, func) => promise.then(func), Promise.resolve());
   };
